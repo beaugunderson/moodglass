@@ -14,10 +14,23 @@ var MOODS = {
   5: 'Good'
 };
 
+var IMAGES = {
+  1: 'red-full.png',
+  2: 'red-half.png',
+  3: 'yellow-full.png',
+  4: 'green-half.png',
+  5: 'green-full.png'
+};
+
 function row(id, values) {
   return '<tr id="' + id + '">' +
     '<td>' + moment(values.timestamp).format('M/D/YY h:mma') + '</td>' +
-    '<td>' + MOODS[values.mood] + '</td>' +
+    '<td>' +
+      (IMAGES[values.mood] ?
+        '<img src="/img/' + IMAGES[values.mood] + '"> ' :
+        '') + ' ' +
+      (MOODS[values.mood] || '') +
+    '</td>' +
     '<td>' + (values.notes || '') + '</td>' +
   '</tr>';
 }

@@ -19,6 +19,9 @@ swig.init({
   cache: false
 });
 
+//var THIRTY_MINUTES = 30 * 60 * 1000;
+var THIRTY_MINUTES = 10 * 1000;
+
 function timelineTemplate() {
   return {
     "creator": {
@@ -26,16 +29,16 @@ function timelineTemplate() {
       "source": "moodmeter",
       "displayName": "Moodglass",
       "imageUrls": [
-        "https://www.moodglass.com/img/moodglass-128.png"
+        "https://www.moodglass.com/img/brain-logo.png"
       ],
       "type": "INDIVIDUAL"
     },
     "menuItems": [
-      { "id": 3, "action": "CUSTOM",
+      { "id": 5, "action": "CUSTOM",
         "values": [{ "state": "DEFAULT",
           "displayName": "Good",
           "iconUrl": "https://beaugunderson.com/glass/img/green-full.png" }] },
-      { "id": 2, "action": "CUSTOM",
+      { "id": 3, "action": "CUSTOM",
         "values": [{ "state": "DEFAULT",
           "displayName": "Neutral",
           "iconUrl": "https://beaugunderson.com/glass/img/yellow-full.png" }] },
@@ -93,10 +96,23 @@ app.use(function (req, res, next) {
   next();
 });
 
+app.use(function (req, res, next) {
+  res.locals.user = req.user;
+  res.locals.authenticated = !!req.user;
+
+  next();
+});
+
 app.use(app.router);
 
 app.get('/login', function (req, res) {
   res.render('login');
+});
+
+app.get('/logout', function (req, res) {
+  req.logout();
+
+  res.redirect('/');
 });
 
 app.get('/auth/google', passport.authenticate('google', {
@@ -108,10 +124,41 @@ app.get('/auth/google', passport.authenticate('google', {
   ].join(' ')
 }));
 
-app.get('/auth/google/callback', passport.authenticate('google', {
-  failureRedirect: '/login',
-  successReturnToOrRedirect: '/'
-}));
+app.get('/auth/google/callback', passport.authenticate('google'),
+  function (req, res) {
+  debug('authenticate callback', req.user);
+
+  if (req.user) {
+    // Get the user's profile information
+    req.google().getFeed('https://www.googleapis.com/oauth2/v1/userinfo',
+      function (err, body) {
+      if (err) return;
+
+      debug('userinfo body', body);
+
+      users.setUser(req.user.id, {
+        email: body.email,
+        name: body.name,
+        givenName: body.given_name,
+        picture: body.picture
+      }, function (err) {
+        debug('err in setUser', err);
+      });
+    });
+
+    // Send an initial timeline item
+    req.google().post({
+      uri: 'https://www.googleapis.com/glass/v1/timeline',
+      json: timelineTemplate()
+    }, function (err) {
+      if (err) debug('initial timeline item err', err);
+    });
+
+    res.redirect('/');
+  } else {
+    res.redirect('/login');
+  }
+});
 
 // TODO: ensureLoggedIn
 app.get('/data', function (req, res) {
@@ -138,7 +185,7 @@ app.get('/', function (req, res) {
         operation: ['UPDATE', 'INSERT', 'DELETE', 'MENU_ACTION'],
         callbackUrl: 'https://moodglass.com/push/glass',
         verifyToken: 'glass-magic',
-        userToken: req.user.userId
+        userToken: req.user.id || req.user.userId // XXX
       }
     }, function (err, body) {
       if (err) debug('err', err);
@@ -181,13 +228,21 @@ app.post('/push/glass', function (req, res) {
 
     ref.push({ timestamp: Date.now(), mood: mood });
   } else {
-    users.getUser(req.body.userToken, function (err, user) {
-      if (err) return;
+    if (!req.body.userToken) {
+      debug('Weird body', req.body);
 
-      google(user.accessToken, user.refreshToken).getFeed({
-        uri: 'https://www.googleapis.com/glass/v1/timeline/' + req.body.itemId,
-        json: true
-      }, function (err, body) {
+      return;
+    }
+
+    users.getUser(req.body.userToken, function (err, user) {
+      debug('body.userToken', req.body.userToken);
+      debug('user', user);
+
+      if (err || !user) return console.error('Error retrieving user!', err);
+
+      google(user.accessToken, user.refreshToken)
+        .getFeed('https://www.googleapis.com/glass/v1/timeline/' +
+          req.body.itemId, function (err, body) {
         debug('err', err);
         debug('body', body);
 
@@ -200,12 +255,41 @@ app.post('/push/glass', function (req, res) {
             var name = snapshot.name();
             var val = snapshot.val();
 
-            val.notes = body.text;
-
             debug('snapshot.name()', name);
             debug('snapshot.val()', val);
 
-            ref.child(name).update(val);
+            if (Date.now() - THIRTY_MINUTES > val.timestamp) {
+              // Create a new entry
+              var guessedMood;
+
+              if (/mostly good/i.test(body.text)) {
+                guessedMood = 4;
+              } else if (/mostly bad/i.test(body.text)) {
+                guessedMood = 2;
+              } else if (/good/i.test(body.text)) {
+                guessedMood = 5;
+              } else if (/bad/i.test(body.text)) {
+                guessedMood = 1;
+              } else if (/neutral/i.test(body.text)) {
+                guessedMood = 3;
+              }
+
+              var data = {
+                timestamp: Date.now(),
+                notes: body.text
+              };
+
+              if (guessedMood) {
+                data.mood = guessedMood;
+              }
+
+              ref.push(data);
+            } else {
+              // Update the entry
+              val.notes = body.text;
+
+              ref.child(name).update(val);
+            }
 
             ref.off('child_added', onLastElement);
           });
