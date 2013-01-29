@@ -1,6 +1,8 @@
 {% extends 'layout.html' %}
 
-{% block title %}My data{% endblock %}
+{% block title %}My Data{% endblock %}
+
+{% block pageName %}My Data{% endblock %}
 
 {% block head %}
   <script src="//cdn.firebase.com/v0/firebase.js"></script>
@@ -15,9 +17,7 @@
 {% endblock %}
 
 {% block body %}
- <h1>My Data</h1>
-
- <table class="table table-striped">
+ <table class="table table-striped table-hover">
   <thead>
    <th style="width: 20%;">Time</th>
    <th style="width: 15%;">Mood</th>

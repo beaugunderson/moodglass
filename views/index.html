@@ -1,11 +1,13 @@
 {% extends 'layout.html' %}
 
 {% block body %}
- <h1>Moodglass</h1>
-
  <ul>
-  <li><a href="/auth/google">Authorize with Glass</a></li>
+  {% if authenticated %}
   <li><a href="/data">See your data</a></li>
   <li><a href="/trigger">Trigger a timeline event manually</a></li>
+  <li><a href="/logout">Logout</a></li>
+  {% else %}
+  <li><a href="/auth/google">Authorize with Glass</a></li>
+  {% endif %}
  </ul>
 {% endblock %}
