@@ -15,11 +15,11 @@ var MOODS = {
 };
 
 var IMAGES = {
-  1: 'red-full.png',
+  1: 'red-full-alt.png',
   2: 'red-half.png',
-  3: 'yellow-full.png',
+  3: 'yellow-full-alt.png',
   4: 'green-half.png',
-  5: 'green-full.png'
+  5: 'green-full-alt.png'
 };
 
 function row(id, values) {
