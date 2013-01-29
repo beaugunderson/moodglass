@@ -1,0 +1,33 @@
+{
+  "name": "moodglass",
+  "version": "0.0.1",
+  "devDependencies": {
+    "chai": "*"
+  },
+  "dependencies": {
+    "async": "*",
+    "connect-ensure-login": "*",
+    "connect-mongo": "*",
+    "consolidate": "*",
+    "debug": "git+https://github.com/visionmedia/debug.git",
+    "express": "3.x",
+    "gdata-js": "",
+    "mongodb": "*",
+    "node-uuid": "*",
+    "oauth": "*",
+    "oauth2orize": "*",
+    "passport": "*",
+    "passport-google-oauth": "*",
+    "passport-http": "*",
+    "passport-http-bearer": "*",
+    "passport-local": "*",
+    "passport-oauth2-client-password": "*",
+    "passport-singly": "*",
+    "querystring": "*",
+    "redis": "*",
+    "request": "*",
+    "sprintf": "*",
+    "swig": "*",
+    "underscore": "*"
+  }
+}
