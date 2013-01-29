@@ -1,0 +1,21 @@
+header {
+   /*margin-bottom: 1em;*/
+}
+
+header section {
+   text-align: right;
+}
+
+#username {
+   font-weight: bold;
+}
+
+#rows img {
+   max-width: 16px;
+   vertical-align: text-bottom;
+   margin-right: 3px;
+}
+
+#logo {
+   max-height: 2em;
+}
