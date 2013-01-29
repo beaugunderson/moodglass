@@ -18,6 +18,14 @@
  <body>
   <div class="container">
    <header>
+    <ul class="nav nav-pills pull-right">
+     <!--<li class="active"><a href="#">Home</a></li>
+     <li><a href="#">About</a></li>-->
+     {% if authenticated %}
+     <li><a href="/logout">Logout</a></li>
+     {% endif %}
+    </ul>
+
     <h1><a href="/"><img id="logo" src="/img/brain-logo-large.png"></a>
      {% block pageName %}Moodglass{% endblock %}</h1>
 
@@ -29,7 +37,13 @@
 
    <hr>
 
-  {% block body %}{% endblock %}
+   {% block body %}{% endblock %}
+
+   <hr>
+
+   <footer>
+    By <a href="https://twitter.com/beaugunderson">Beau Gunderson</a>.
+   </footer>
   </div>
  </body>
 </html>

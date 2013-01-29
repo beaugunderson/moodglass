@@ -1,13 +1,48 @@
 {% extends 'layout.html' %}
 
 {% block body %}
- <ul>
   {% if authenticated %}
-  <li><a href="/data">See your data</a></li>
-  <li><a href="/trigger">Trigger a timeline event manually</a></li>
-  <li><a href="/logout">Logout</a></li>
+  <ul>
+   <li><a href="/data">See your data</a></li>
+   <li><a href="/trigger">Trigger a timeline event manually</a></li>
+  </ul>
   {% else %}
-  <li><a href="/auth/google">Authorize with Glass</a></li>
+  <div class="jumbotron">
+   <h1>Track your mood with Glass!</h1>
+
+   <p class="lead">Use Glass to log your mood throughout the day and get an
+    unobtrusive reminder if you haven't checked in recently.</p>
+
+   <a class="btn btn-success btn-large"
+    href="/auth/google">Authorize with Glass</a>
+  </div>
+
+  <hr>
+
+  <div class="row-fluid marketing">
+   <div class="span6">
+    <h4>Reflect</h4>
+    <p>Thinking about how you feel is important and Moodglass helps you to
+     build that habit.</p>
+
+    <h4>Analyze</h4>
+    <p>Look for trends in your mood. When do you feel best? Are you happier at
+    night than in the morning?</p>
+
+    <h4>Export</h4>
+    <p>Export your data in CSV or JSON format.</p>
+   </div>
+
+   <div class="span6">
+    <h4>Build</h4>
+    <p>Moodglass provies an OAuth2 API for other applications to access your
+     stored mood data.</p>
+
+    <h4>Lead</h4>
+    <p>Contribute to the cutting edge of the Quantified Self and wearable
+    computing and <a href="mailto:beau.gunderson@glasspioneer.com">file a bug
+     report</a>.</p>
+   </div>
+  </div>
   {% endif %}
- </ul>
 {% endblock %}

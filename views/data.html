@@ -17,6 +17,33 @@
 {% endblock %}
 
 {% block body %}
+ <h4>Breakdown</h4>
+
+ <ul id="percentages">
+  <li><img src="/img/red-full.png"> <span id="mood-1"></span>%</li>
+  <li><img src="/img/yellow-full.png"> <span id="mood-3"></span>%</li>
+  <li><img src="/img/green-full.png"> <span id="mood-5"></span>%</li>
+ </ul>
+
+ <hr>
+
+ <h4>Over time</h4>
+
+ <div id="timeline" class="progress">
+  <!-- Filled programatically -->
+ </div>
+
+ <hr>
+
+ <section class="pull-right">
+  <a class="btn btn-mini" href="/data.css"><i class="icon-download-alt"></i>
+   Export to CSV</a>
+  <a class="btn btn-mini" href="/data.json"><i class="icon-download-alt"></i>
+   Export to JSON</a>
+ </section>
+
+ <h4>All records</h4>
+
  <table class="table table-striped table-hover">
   <thead>
    <th style="width: 20%;">Time</th>

@@ -3,6 +3,7 @@ var debug = require('debug')('mood');
 var express = require('express');
 var gdata = require('gdata-js');
 var passport = require('passport');
+var request = require('request');
 var swig = require('swig');
 
 var Firebase = require('./ext/firebase-node');
@@ -22,7 +23,26 @@ swig.init({
 //var THIRTY_MINUTES = 30 * 60 * 1000;
 var THIRTY_MINUTES = 10 * 1000;
 
-function timelineTemplate() {
+var MOODS = {
+  1: 'Bad',
+  3: 'Neutral',
+  5: 'Good'
+};
+
+var COLORS = {
+  1: 'red',
+  3: 'yellow',
+  5: 'green'
+};
+
+function timelineTemplate(opt_lastMood) {
+  var lastMood = '';
+
+  if (opt_lastMood) {
+    lastMood = 'Your last mood was <em class="' + COLORS[opt_lastMood] +
+      '">' + MOODS[opt_lastMood].toLowerCase() + '</em>. ';
+  }
+
   return {
     "creator": {
       "kind": "glass#entity",
@@ -48,7 +68,9 @@ function timelineTemplate() {
           "iconUrl": "https://beaugunderson.com/glass/img/red-full.png" }] },
       { "id": "reply", "action": "REPLY" }
     ],
-    "html": "<article>\n  <section>\n    <h1 class=\"text-large green\">How are you feeling?</h1>\n    <p>Your last mood was <em class=\"green\">good</em>. Please rate your current mood.</p>\n  </section>\n</article>"
+    "html": '<article><section>' +
+      '<h1 class="text-large green">How are you feeling?</h1>' + lastMood +
+      'Please rate your current mood.</p></section></article>'
   };
 }
 
@@ -154,7 +176,7 @@ app.get('/auth/google/callback', passport.authenticate('google'),
       if (err) debug('initial timeline item err', err);
     });
 
-    res.redirect('/');
+    res.redirect('/data');
   } else {
     res.redirect('/login');
   }
@@ -165,13 +187,58 @@ app.get('/data', function (req, res) {
   res.render('data', { userId: req.user.userId });
 });
 
+app.get('/data.css', function (req, res) {
+  request.get({
+    uri: 'https://moodglass.firebaseio.com/data/' + req.user.userId + '.json',
+    json: true
+  }, function (err, response, body) {
+    var data = 'timestamp,mood,notes\n';
+
+    Object.keys(body).forEach(function (key) {
+      data += (body[key].timestamp || '') + ',';
+      data += (body[key].mood || '') + ',';
+
+      if (/,/.test(body[key].notes)) {
+        body[key].notes = '"' + body[key].notes + '"';
+      }
+
+      data += (body[key].notes || '') + '\n';
+    });
+
+    res.set('Content-Type', 'text/plain');
+
+    res.send(data);
+  });
+});
+
+app.get('/data.json', function (req, res) {
+  request.get({
+    uri: 'https://moodglass.firebaseio.com/data/' + req.user.userId + '.json',
+    json: true
+  }, function (err, response, body) {
+    var data = [];
+
+    Object.keys(body).forEach(function (key) {
+      data.push(body[key]);
+    });
+
+    res.json(data);
+  });
+});
+
 // TODO: ensureLoggedIn
 app.get('/trigger', function (req, res) {
-  req.google().post({
-    uri: 'https://www.googleapis.com/glass/v1/timeline',
-    json: timelineTemplate()
-  }, function (err, body) {
-    res.json(body);
+  users.getLastMood(req.user.id || req.user.userId, function (err, lastMood) {
+    debug(req.user.id, req.user.userId);
+    debug('trigger err', err);
+    debug('lastMood', lastMood);
+
+    req.google().post({
+      uri: 'https://www.googleapis.com/glass/v1/timeline',
+      json: timelineTemplate(lastMood)
+    }, function (err, body) {
+      res.json(body);
+    });
   });
 });
 
@@ -225,6 +292,10 @@ app.post('/push/glass', function (req, res) {
     }
 
     var mood = parseInt(req.body.menuActions[0].id, 10);
+
+    users.setLastMood(req.body.userToken, mood, function (err) {
+      if (err) debug('setLastMood err', err);
+    });
 
     ref.push({ timestamp: Date.now(), mood: mood });
   } else {
@@ -281,6 +352,11 @@ app.post('/push/glass', function (req, res) {
 
               if (guessedMood) {
                 data.mood = guessedMood;
+
+                users.setLastMood(req.body.userToken, guessedMood,
+                  function (err) {
+                  if (err) debug('setLastMood err', err);
+                });
               }
 
               ref.push(data);

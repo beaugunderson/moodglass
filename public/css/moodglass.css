@@ -1,5 +1,5 @@
-header {
-   /*margin-bottom: 1em;*/
+footer {
+   margin-bottom: 1em;
 }
 
 header section {
@@ -14,6 +14,20 @@ header section {
    max-width: 16px;
    vertical-align: text-bottom;
    margin-right: 3px;
+}
+
+#percentages {
+   margin-left: 0;
+}
+
+#percentages li {
+   display: inline;
+   margin-right: 2em;
+}
+
+#percentages li img {
+   max-width: 32px;
+   margin-right: 0.5em;
 }
 
 #logo {

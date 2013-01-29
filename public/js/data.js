@@ -35,16 +35,87 @@ function row(id, values) {
   '</tr>';
 }
 
+var rows = [];
+
+// TODO: defer
+function updateTotals() {
+  var totals = {};
+  var total = 0;
+
+  rows.forEach(function (row) {
+    if (!row.mood) {
+      return;
+    }
+
+    if (!totals[row.mood]) {
+      totals[row.mood] = 0;
+    }
+
+    totals[row.mood] += 1;
+
+    total++;
+  });
+
+  Object.keys(totals).forEach(function (mood) {
+    $('#mood-' + mood).text(Math.round((totals[mood] / total) * 100));
+  });
+}
+
+function updateTimes() {
+  var ourRows = rows.slice();
+
+  ourRows = ourRows.sort(function (a, b) {
+    return b.timestamp - a.timestamp;
+  });
+
+  var first = ourRows.slice(0, 1)[0];
+  var last = ourRows.slice(-1)[0];
+
+  var timespans = [];
+  var timespan = Math.abs(last.timestamp - first.timestamp);
+
+  var lastRow;
+
+  ourRows.forEach(function (row) {
+    if (lastRow) {
+      var difference = lastRow.timestamp - row.timestamp;
+
+      timespans.push({
+        mood: row.mood,
+        span: (difference / timespan) * 100
+      });
+    }
+
+    lastRow = row;
+  });
+
+  var TYPES = {
+    1: 'success',
+    3: 'warning',
+    5: 'danger'
+  };
+
+  $('#timeline').html('');
+
+  timespans.forEach(function (timespan) {
+    $('#timeline').append('<div class="bar bar-' + TYPES[timespan.mood] +
+      '" style="width: ' + timespan.span + '%"></div>');
+  });
+}
+
 ref.on('child_added', function (snapshot) {
   $('#rows').append(row(snapshot.name(), snapshot.val()));
 
-  console.log('child_added', snapshot.name(), snapshot.val());
+  rows.push(snapshot.val());
+
+  updateTotals();
+  updateTimes();
 });
 
 ref.on('value', function (snapshot) {
   snapshot.forEach(function (child) {
     $('#rows #' + child.name()).replaceWith(row(child.name(), child.val()));
-
-    console.log('value', child.name(), child.val());
   });
+
+  updateTotals();
 });
