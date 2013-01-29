@@ -1,8 +1,8 @@
 var consolidate = require('consolidate');
 var debug = require('debug')('mood');
 var express = require('express');
+var gdata = require('gdata-js');
 var passport = require('passport');
-var request = require('request');
 var swig = require('swig');
 
 var Firebase = require('./ext/firebase-node');
@@ -18,6 +18,36 @@ swig.init({
   allowErrors: true,
   cache: false
 });
+
+function timelineTemplate() {
+  return {
+    "creator": {
+      "kind": "glass#entity",
+      "source": "moodmeter",
+      "displayName": "Moodglass",
+      "imageUrls": [
+        "https://www.moodglass.com/img/moodglass-128.png"
+      ],
+      "type": "INDIVIDUAL"
+    },
+    "menuItems": [
+      { "id": 3, "action": "CUSTOM",
+        "values": [{ "state": "DEFAULT",
+          "displayName": "Good",
+          "iconUrl": "https://beaugunderson.com/glass/img/green-full.png" }] },
+      { "id": 2, "action": "CUSTOM",
+        "values": [{ "state": "DEFAULT",
+          "displayName": "Neutral",
+          "iconUrl": "https://beaugunderson.com/glass/img/yellow-full.png" }] },
+      { "id": 1, "action": "CUSTOM",
+        "values": [{ "state": "DEFAULT",
+          "displayName": "Bad",
+          "iconUrl": "https://beaugunderson.com/glass/img/red-full.png" }] },
+      { "id": "reply", "action": "REPLY" }
+    ],
+    "html": "<article>\n  <section>\n    <h1 class=\"text-large green\">How are you feeling?</h1>\n    <p>Your last mood was <em class=\"green\">good</em>. Please rate your current mood.</p>\n  </section>\n</article>"
+  };
+}
 
 var app = module.exports.api = express();
 
@@ -42,6 +72,26 @@ app.use(express.session({
 
 app.use(passport.initialize());
 app.use(passport.session());
+
+function google(accessToken, refreshToken) {
+  var client = gdata(process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET);
+
+  client.setToken({
+    access_token: accessToken,
+    refresh_token: refreshToken
+  });
+
+  return client;
+}
+
+app.use(function (req, res, next) {
+  req.google = function () {
+    return google(req.user.accessToken, req.user.refreshToken);
+  };
+
+  next();
+});
 
 app.use(app.router);
 
@@ -68,16 +118,21 @@ app.get('/data', function (req, res) {
   res.render('data', { userId: req.user.userId });
 });
 
+// TODO: ensureLoggedIn
+app.get('/trigger', function (req, res) {
+  req.google().post({
+    uri: 'https://www.googleapis.com/glass/v1/timeline',
+    json: timelineTemplate()
+  }, function (err, body) {
+    res.json(body);
+  });
+});
+
 app.get('/', function (req, res) {
   // If the user is logged in then setup a subscription to their timeline
   if (req.user) {
-    debug('req.user.accessToken', req.user.accessToken);
-
-    request.post({
+    req.google().post({
       uri: 'https://www.googleapis.com/glass/v1/subscriptions',
-      headers: {
-        Authorization: 'Bearer ' + req.user.accessToken
-      },
       json: {
         collection: 'timeline',
         operation: ['UPDATE', 'INSERT', 'DELETE', 'MENU_ACTION'],
@@ -85,7 +140,7 @@ app.get('/', function (req, res) {
         verifyToken: 'glass-magic',
         userToken: req.user.userId
       }
-    }, function (err, response, body) {
+    }, function (err, body) {
       if (err) debug('err', err);
 
       debug(JSON.stringify(body, null, 2));
@@ -116,11 +171,8 @@ app.post('/push/glass', function (req, res) {
 
   debug('Attempting to service POST');
 
-  // If it's a custom menu action of Good/OK/Bad
+  // If it's a custom menu action of Good/Neutral/Bad
   if (req.body.menuActions) {
-    // Log this to the database
-    debug('body.menuActions', req.body.menuActions);
-
     if (req.body.menuActions.length !== 1) {
       return res.send(500);
     }
@@ -129,28 +181,20 @@ app.post('/push/glass', function (req, res) {
 
     ref.push({ timestamp: Date.now(), mood: mood });
   } else {
-    debug('body.itemId', req.body.itemId);
-
     users.getUser(req.body.userToken, function (err, user) {
       if (err) return;
 
-      request.get({
+      google(user.accessToken, user.refreshToken).getFeed({
         uri: 'https://www.googleapis.com/glass/v1/timeline/' + req.body.itemId,
-        headers: {
-          Authorization: 'Bearer ' + user.accessToken
-        },
         json: true
-      }, function (err, response, body) {
+      }, function (err, body) {
         debug('err', err);
         debug('body', body);
 
         if (err) return;
 
         if (body.text) {
-          // Log this to the database
-          debug('body.text', body.text);
-
-          // Retrieve the last record from `ref`
+          // Retrieve the last record
           var onLastElement = ref.endAt().limit(1).on('child_added',
             function (snapshot) {
             var name = snapshot.name();
