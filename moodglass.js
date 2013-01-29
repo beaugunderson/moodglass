@@ -79,7 +79,7 @@ app.get('/', function (req, res) {
       json: {
         collection: 'timeline',
         operation: ['UPDATE', 'INSERT', 'DELETE', 'MENU_ACTION'],
-        callbackUrl: 'https://beaugunderson.com/glass/push/glass',
+        callbackUrl: 'https://moodglass.com/push/glass',
         verifyToken: 'glass-magic',
         userToken: req.user.userId
       }
