@@ -1,39 +1,31 @@
 {% extends 'layout.html' %}
 
+{% block title %}My data{% endblock %}
+
+{% block head %}
+  <script src="//cdn.firebase.com/v0/firebase.js"></script>
+
+  <script src="/lib/moment.min.js"></script>
+
+  <script>
+   var userId = '{{ userId }}';
+  </script>
+
+  <script src="/js/data.js"></script>
+{% endblock %}
+
 {% block body %}
  <h1>My Data</h1>
 
- <table>
+ <table class="table table-striped">
   <thead>
-   <th>Time</th>
-   <th>Mood</th>
+   <th style="width: 20%;">Time</th>
+   <th style="width: 15%;">Mood</th>
    <th>Notes</th>
   </thead>
 
-  <tbody>
-   <tr>
-    <td>1/23/2013 4:43pm</td>
-    <td>Good</td>
-    <td></td>
-   </tr>
-
-   <tr>
-    <td>1/24/2013 3:17pm</td>
-    <td>OK</td>
-    <td>feeling a little tired</td>
-   </tr>
-
-   <tr>
-    <td>1/25/2013 6:15pm</td>
-    <td>Good</td>
-    <td></td>
-   </tr>
-
-   <tr>
-    <td>1/24/2013 6:15pm</td>
-    <td>Good</td>
-    <td></td>
-   </tr>
+  <tbody id="rows">
+   <!-- Filled programatically -->
   </tbody>
  </table>
 {% endblock %}

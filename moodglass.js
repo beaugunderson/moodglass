@@ -1,9 +1,11 @@
+var consolidate = require('consolidate');
 var debug = require('debug')('mood');
 var express = require('express');
-var consolidate = require('consolidate');
 var passport = require('passport');
 var request = require('request');
 var swig = require('swig');
+
+var Firebase = require('./ext/firebase-node');
 
 var MongoStore = require('connect-mongo')(express);
 
@@ -57,13 +59,13 @@ app.get('/auth/google', passport.authenticate('google', {
 }));
 
 app.get('/auth/google/callback', passport.authenticate('google', {
-  failureRedirect: '/glass/login',
-  successReturnToOrRedirect: '/glass/'
+  failureRedirect: '/login',
+  successReturnToOrRedirect: '/'
 }));
 
+// TODO: ensureLoggedIn
 app.get('/data', function (req, res) {
-  // TODO: Display data
-  res.render('data');
+  res.render('data', { userId: req.user.userId });
 });
 
 app.get('/', function (req, res) {
@@ -109,6 +111,11 @@ app.post('/push/glass', function (req, res) {
     return res.send(200);
   }
 
+  var ref = new Firebase('https://moodglass.firebaseio.com/data/' +
+    req.body.userToken);
+
+  debug('Attempting to service POST');
+
   // If it's a custom menu action of Good/OK/Bad
   if (req.body.menuActions) {
     // Log this to the database
@@ -120,9 +127,13 @@ app.post('/push/glass', function (req, res) {
 
     var mood = parseInt(req.body.menuActions[0].id, 10);
 
-    debug('mood', mood);
+    ref.push({ timestamp: Date.now(), mood: mood });
   } else {
+    debug('body.itemId', req.body.itemId);
+
     users.getUser(req.body.userToken, function (err, user) {
+      if (err) return;
+
       request.get({
         uri: 'https://www.googleapis.com/glass/v1/timeline/' + req.body.itemId,
         headers: {
@@ -130,9 +141,30 @@ app.post('/push/glass', function (req, res) {
         },
         json: true
       }, function (err, response, body) {
+        debug('err', err);
+        debug('body', body);
+
+        if (err) return;
+
         if (body.text) {
           // Log this to the database
           debug('body.text', body.text);
+
+          // Retrieve the last record from `ref`
+          var onLastElement = ref.endAt().limit(1).on('child_added',
+            function (snapshot) {
+            var name = snapshot.name();
+            var val = snapshot.val();
+
+            val.notes = body.text;
+
+            debug('snapshot.name()', name);
+            debug('snapshot.val()', val);
+
+            ref.child(name).update(val);
+
+            ref.off('child_added', onLastElement);
+          });
         }
       });
     });
