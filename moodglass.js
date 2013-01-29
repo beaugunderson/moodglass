@@ -194,16 +194,18 @@ app.get('/data.css', function (req, res) {
   }, function (err, response, body) {
     var data = 'timestamp,mood,notes\n';
 
-    Object.keys(body).forEach(function (key) {
-      data += (body[key].timestamp || '') + ',';
-      data += (body[key].mood || '') + ',';
+    if (body) {
+      Object.keys(body).forEach(function (key) {
+        data += (body[key].timestamp || '') + ',';
+        data += (body[key].mood || '') + ',';
 
-      if (/,/.test(body[key].notes)) {
-        body[key].notes = '"' + body[key].notes + '"';
-      }
+        if (/,/.test(body[key].notes)) {
+          body[key].notes = '"' + body[key].notes + '"';
+        }
 
-      data += (body[key].notes || '') + '\n';
-    });
+        data += (body[key].notes || '') + '\n';
+      });
+    }
 
     res.set('Content-Type', 'text/plain');
 
@@ -218,9 +220,11 @@ app.get('/data.json', function (req, res) {
   }, function (err, response, body) {
     var data = [];
 
-    Object.keys(body).forEach(function (key) {
-      data.push(body[key]);
-    });
+    if (body) {
+      Object.keys(body).forEach(function (key) {
+        data.push(body[key]);
+      });
+    }
 
     res.json(data);
   });
