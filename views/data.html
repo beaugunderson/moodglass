@@ -2,7 +2,7 @@
 
 {% block title %}My Data{% endblock %}
 
-{% block pageName %}My Data{% endblock %}
+{% block pageName %}Moodglass: My Data{% endblock %}
 
 {% block head %}
   <script src="//cdn.firebase.com/v0/firebase.js"></script>
@@ -17,6 +17,11 @@
 {% endblock %}
 
 {% block body %}
+ <section class="pull-right">
+  <a class="btn btn-mini" href="/trigger"><i class="icon-play"></i> Trigger an
+   update</a>
+ </section>
+
  <h4>Breakdown</h4>
 
  <ul id="percentages">

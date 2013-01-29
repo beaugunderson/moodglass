@@ -237,7 +237,14 @@ app.get('/trigger', function (req, res) {
       uri: 'https://www.googleapis.com/glass/v1/timeline',
       json: timelineTemplate(lastMood)
     }, function (err, body) {
-      res.json(body);
+      if (err) {
+        return res.json({
+          err: err,
+          body: body
+        });
+      }
+
+      res.redirect('/data');
     });
   });
 });

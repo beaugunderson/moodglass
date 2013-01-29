@@ -104,7 +104,7 @@ function updateTimes() {
 }
 
 ref.on('child_added', function (snapshot) {
-  $('#rows').append(row(snapshot.name(), snapshot.val()));
+  $('#rows').prepend(row(snapshot.name(), snapshot.val()));
 
   rows.push(snapshot.val());
 
